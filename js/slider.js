@@ -1,7 +1,7 @@
-;(function (global, factory) {
+(function (global, factory) {
     if (typeof define === 'function' && define.amd)
         define(function () {
-            factory(global)
+            return factory(global)
         })
     else
         factory(global)
@@ -9,36 +9,71 @@
 
     var Slider
 
+    //简单的线性缓动 如果没有引入Tween.js 就用这个
+    function linear(t, b, c, d) {
+        return c * t / d + b;
+    }
+
+    //针对数组和类数组的简单遍历
+    function each(obj, callback) {
+        for (var i = 0, item; item = obj[i]; i++) {
+            callback.call(item, i, item)
+        }
+    }
+
+    //简单的扩展参数函数
+    function extend(source, target) {
+        for (var key in target) {
+            if(key==='easing'){
+                if(!window.Tween){
+                    source['easing']=linear
+                }
+                else{
+                    var words=target['easing'].split('.')
+                    source['easing']=words.length===1?Tween[words[0]]:Tween[words[0]][words[1]]
+                }
+
+            }
+            else if (target[key] !== undefined) source[key] = target[key]
+        }
+    }
+
     function S(selector, opt) {
+        //ID选择器加#或不加#都行
         selector = selector[0] === '#' ? selector.substr(1) : selector
         this.selector = document.getElementById(selector)
+
         this.slider = this.selector.getElementsByClassName('slider-wrapper')[0]
         this.prevBtn = this.selector.getElementsByClassName('btn-prev')[0]
         this.nextBtn = this.selector.getElementsByClassName('btn-next')[0]
 
-        this.showDots = opt && opt.showDots || true
-        this.loop = opt && opt.loop || false
-        this.autoPlay = opt && opt.autoPlay || true
-        this.duration = opt && opt.duration || 300
-        this.interval = opt && opt.interval || 1000
-        this.easing = opt && Tween[opt.easing] || Tween['Quad']['easeIn']
+        this.options = {
+            showDots: true,//显示圆点
+            loop: false,//是否循环播放
+            autoplay: true,//是否自动播放
+            duration: 300,//切换一张的时间
+            interval: 3000,//切换下一张的时间间隔
+            easing: linear//缓动动画
+        }
+        //融合默认参数和自定义参数
+        extend(this.options, opt)
 
-        this.currentIdx = 0
-        this.startPos = 0
-        this.endPos = 0
-        this.startTime = 0
-        this.sliderWidth = this.selector.clientWidth
-        this.sliderNum = this.slider.children.length
-        this.autoPlayTimer = null
+        this.currentIdx = 0//当前幻灯片序号
+        this.startPos = 0//幻灯片开始位置
+        this.endPos = 0//幻灯片结束位置
+        this.startTime = 0//幻灯片开始运动时间
+        this.sliderWidth = this.selector.clientWidth//幻灯片宽度
+        this.sliderNum = this.slider.children.length//幻灯片数量
+        this.autoPlayTimer = null//自动播放计时器
 
-        this.init()
+        this.init()//初始化幻灯片
     }
 
     S.prototype.init = function () {
         var self = this
         //初始化slider的宽度
         this.slider.style.width = this.sliderWidth * this.sliderNum + 'px'
-        if (this.showDots) {
+        if (this.options.showDots) {
             this.dotsWrap = this.selector.getElementsByClassName('slider-dots')[0]
             //添加圆点
             var dots = '<li class="on"></li>'
@@ -56,6 +91,7 @@
                 }
             })
         }
+
         //绑定next prev 事件
         this.prevBtn.onclick = function () {
             self.prev()
@@ -63,11 +99,12 @@
         this.nextBtn.onclick = function () {
             self.next()
         }
+
         //如果设置自动播放
-        if (this.autoPlay) {
+        if (this.options.autoplay) {
             this.autoPlayTimer = setInterval(function () {
                 self.nextBtn.click()
-            }, this.duration + this.interval)
+            }, self.options.duration + self.options.interval)
             //鼠标滑入停止自动播放
             this.selector.onmouseover = function () {
                 clearInterval(self.autoPlayTimer)
@@ -76,15 +113,8 @@
             this.selector.onmouseout = function () {
                 self.autoPlayTimer = setInterval(function () {
                     self.nextBtn.click()
-                }, self.duration + self.interval)
+                }, self.options.duration + self.options.interval)
             }
-        }
-    }
-
-    //针对数组和类数组的简单遍历
-    function each(obj, callback) {
-        for (var i = 0, item; item = obj[i]; i++) {
-            callback.call(item, i, item)
         }
     }
 
@@ -102,7 +132,7 @@
     S.prototype.next = function () {
         var slider = this.slider
         var self = this
-        if (this.loop) {//如果循环连接播放
+        if (this.options.loop) {//如果循环连接播放
             this.sliderTo(1, function () {
                 var first = slider.children[0]
                 slider.appendChild(first)
@@ -139,11 +169,11 @@
 
     S.prototype.step = function () {
         var t = +new Date()
-        if (t >= this.startTime + this.duration) {
+        if (t >= this.startTime + this.options.duration) {
             this.updatePos(this.endPos)
             return false
         }
-        var pos = this.easing(t - this.startTime, this.startPos, this.endPos - this.startPos, this.duration)
+        var pos = this.options.easing(t - this.startTime, this.startPos, this.endPos - this.startPos, this.options.duration)
         this.updatePos(pos)
     }
 
@@ -154,10 +184,12 @@
 
     //更新圆点高亮
     S.prototype.updateDots = function () {
-        each(this.dots, function () {
-            this.className = ''
-        })
-        this.dots[this.currentIdx].className = 'on'
+        if (this.options.showDots) {//如果有圆点才更新
+            each(this.dots, function () {
+                this.className = ''
+            })
+            this.dots[this.currentIdx].className = 'on'
+        }
     }
 
     Slider = function (selector, opt) {
