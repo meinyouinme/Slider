@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Slider</title>
+    <link href="reset.css" rel="stylesheet">
+    <link href="slider.css" rel="stylesheet">
+</head>
+<body>
+<div id="slider1" class="slider">
+    <ul class="slider-wrapper">
+        <li><img src="img/1.jpg"></li>
+        <li><img src="img/2.jpg"></li>
+        <li><img src="img/3.jpg"></li>
+    </ul>
+    <ul class="slider-dots"></ul>
+    <div class="slider-btn btn-prev">‹</div>
+    <div class="slider-btn btn-next">›</div>
+</div>
+<script src="tween.js"></script>
+<script src="src/slider-old.js"></script>
+<script>
+    var slider1=Slider('#slider1',{
+        loop:false,
+        interval:4000
+    })
+</script>
+</body>
+</html>
